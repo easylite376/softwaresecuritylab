@@ -6,3 +6,6 @@
 
 - urllib(https://docs.python.org/3.6/library/urllib.html) for requests
 
+- docker-container for testing: easylite376/test-apache
+  - config.txt in root directory
+  - password.txt in backup directory
