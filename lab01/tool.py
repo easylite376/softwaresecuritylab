@@ -8,5 +8,9 @@ parser.add_argument("-bruteforce",dest='bruteforce', action='store_true', help="
 args = parser.parse_args()
 if args.file:
     print("i turned on",args.file)
+    f = open("test.txt","r")
+    for fileName in f.read().split():
+        print fileName
+    f.close()
 if args.bruteforce:
     print("brutefoce turned on", args.bruteforce)
