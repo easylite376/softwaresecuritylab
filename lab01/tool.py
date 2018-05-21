@@ -11,7 +11,7 @@ if args.file:
     print("i turned on",args.file)
     f = open("test.txt","r")
     for fileName in f.read().split():
-        print fileName
+        print(fileName)
     f.close()
 if args.bruteforce:
     print("brutefoce turned on", args.bruteforce)
