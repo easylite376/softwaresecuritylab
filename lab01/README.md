@@ -9,3 +9,4 @@
 - docker-container for testing: easylite376/test-apache
   - config.txt in root directory
   - password.txt in backup directory
+  - files are at `/usr/local/apache2/htdocs` in container
