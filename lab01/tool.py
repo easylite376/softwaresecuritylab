@@ -44,7 +44,6 @@ def createReport(reachableUrls):
     else:
         print("Your webserver is save!")
 
-
 def createAllPossibleStrings(combinationLength):
     alphabet = list(string.ascii_lowercase)
     combinationList = list()
