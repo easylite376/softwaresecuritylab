@@ -1,30 +1,67 @@
 #!/usr/local/bin/python3
-
+from time import sleep
+import threading
 import argparse,string
 from urllib.request import urlopen
 from urllib.error import HTTPError
 from itertools import combinations
 
+RES=[]
 SUBFOLDER = ['backup']
+
+class myThread (threading.Thread):
+    def __init__(self,  url):
+        threading.Thread.__init__(self)
+        self.url=url
+    def run(self):
+        while(True):
+            try:
+                if (urlopen(self.url).getcode() == 200):
+                    RES.append(self.url);
+                break;
+            except HTTPError:
+                break;
+            except:
+                sleep(1)
 
 def searchFiles(url,filenameList):
     availUrls = list()
     filenameListLength = len(filenameList)
     lastProgress = 0
     counter = 0
+    threads=[]
     print("Progress in %: ")
     if (url[-1:] == "/"):
         url = url[:-1]
-    for filename in filenameList:
-        counter += 1
-        lastProgress = displayProgress(int(counter*100/filenameListLength),lastProgress)
-        urlWithoutDir = "/".join([url,filename])
-        if (isPresentOnServer(urlWithoutDir)):
-            availUrls.append(urlWithoutDir)
-        for directory in SUBFOLDER:
-            urlWithDir = "/".join([url,directory,filename])
-            if (isPresentOnServer(urlWithDir)):
-                availUrls.append(urlWithDir)
+    while(filenameListLength > counter):
+        while(threading.activeCount() < 300 and filenameListLength > counter):
+            lastProgress = displayProgress(int(counter*100/filenameListLength),lastProgress)
+            urlWithoutDir = "/".join([url,filenameList[counter]])
+            try:
+                threads.append(myThread(urlWithoutDir))
+                threads[-1].start()
+            except:
+                sleep(1);
+                threads[-1].start()
+            for directory in SUBFOLDER:
+                urlWithDir = "/".join([url,directory,filenameList[counter]])
+            try:
+                threads.append(myThread(urlWithDir))
+                threads[-1].start()
+            except:
+                sleep(1);
+                threads[-1].start()
+            counter += 1
+        while (threading.activeCount()>100 and filenameListLength > counter):
+            for t in threads:
+                if not t.is_alive():
+                    threads.remove(t);
+    
+    while (threading.activeCount()>1):
+        for t in threads:
+            t.join(0.1)
+            if not t.is_alive():
+                threads.remove(t);
     print()
     createReport(availUrls)
 
@@ -36,10 +73,10 @@ def isPresentOnServer(url):
 
 def createReport(reachableUrls):
     print("-------------------------------------------------")
-    if (len(reachableUrls) != 0):
+    if (len(RES) != 0):
         print("The following urls are reachable on the webserver")
         print("-------------------------------------------------")
-        for url in reachableUrls:
+        for url in RES:
             print(url)
     else:
         print("Your webserver is save!")
