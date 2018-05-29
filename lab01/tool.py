@@ -24,7 +24,7 @@ class myThread (threading.Thread):
                 break;
             except:
                 sleep(1)
-                raise
+                print("Server overloaded. Please add slowdown higher than " + str(slowdown_t))
 
 def searchFiles(url,filenameList):
     availUrls = list()
@@ -114,7 +114,7 @@ if args.file:
     f.close()
 if args.bruteforce:
     print("bruteforce turned on", args.bruteforce)
-    filenameList = createAllPossibleStrings(4)
+    filenameList = createAllPossibleStrings(2)
     # TODO Remove testfiles
     filenameList.append("password.txt")
     filenameList.append("config.txt")
