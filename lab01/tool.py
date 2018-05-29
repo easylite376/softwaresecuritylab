@@ -4,9 +4,10 @@ import threading
 import argparse,string
 from urllib.request import urlopen
 from urllib.error import HTTPError
-from itertools import combinations
+from itertools import permutations
 
 RES=[]
+slowdown_t = 0
 SUBFOLDER = ['backup']
 
 class myThread (threading.Thread):
@@ -23,6 +24,7 @@ class myThread (threading.Thread):
                 break;
             except:
                 sleep(1)
+                raise
 
 def searchFiles(url,filenameList):
     availUrls = list()
@@ -37,6 +39,7 @@ def searchFiles(url,filenameList):
         while(threading.activeCount() < 300 and filenameListLength > counter):
             lastProgress = displayProgress(int(counter*100/filenameListLength),lastProgress)
             urlWithoutDir = "/".join([url,filenameList[counter]])
+            sleep(slowdown_t)
             try:
                 threads.append(myThread(urlWithoutDir))
                 threads[-1].start()
@@ -54,6 +57,7 @@ def searchFiles(url,filenameList):
             counter += 1
         while (threading.activeCount()>100 and filenameListLength > counter):
             for t in threads:
+                t.join(0.01)
                 if not t.is_alive():
                     threads.remove(t);
     
@@ -85,7 +89,7 @@ def createAllPossibleStrings(combinationLength):
     alphabet = list(string.ascii_lowercase)
     combinationList = list()
     extensions = [".cf",".txt",".conf",".bak",".conf.bak",".sql",".data"]
-    for combinationTuple in combinations(alphabet,combinationLength):
+    for combinationTuple in permutations(alphabet,combinationLength):
         for extension in extensions:
             combinationList.append("".join(str(tupleElement) for tupleElement in combinationTuple) + extension)    
     return combinationList
@@ -101,6 +105,7 @@ parser.add_argument("url",help="Url you want to test")
 parser.add_argument("-i", dest="file" ,help="Wordlist")
 parser.add_argument("-bruteforce",dest='bruteforce', action='store_true',
                     help="Bruteforces the potential filenames")
+parser.add_argument("-t",dest="slowdown",help="slowdown factor in seconds, default=0.01",default=0.01,type=float)
 args = parser.parse_args()
 if args.file:
     print("i turned on",args.file)
@@ -109,9 +114,11 @@ if args.file:
     f.close()
 if args.bruteforce:
     print("bruteforce turned on", args.bruteforce)
-    filenameList = createAllPossibleStrings(2)
+    filenameList = createAllPossibleStrings(4)
     # TODO Remove testfiles
     filenameList.append("password.txt")
     filenameList.append("config.txt")
+    print(len(filenameList))
+slowdown_t = args.slowdown
 if args.file or args.bruteforce:
     searchFiles(args.url,filenameList)
