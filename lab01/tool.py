@@ -5,7 +5,7 @@ from urllib.request import urlopen
 from urllib.error import HTTPError
 from itertools import combinations
 
-SUBFOLDER = ['backup']
+SUBFOLDER = ['backup','data','config','docs']
 
 def searchFiles(url,filenameList):
     availUrls = list()
