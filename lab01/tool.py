@@ -5,10 +5,13 @@ import argparse,string
 from urllib.request import urlopen
 from urllib.error import HTTPError
 from itertools import permutations
+from permutations import create_str_bf 
 
+URL = ""
 RES=[]
 slowdown_t = 0
 SUBFOLDER = ['backup','data','config','docs']
+THREADS=[]
 
 class myThread (threading.Thread):
     def __init__(self,  url):
@@ -48,12 +51,12 @@ def searchFiles(url,filenameList):
                 threads[-1].start()
             for directory in SUBFOLDER:
                 urlWithDir = "/".join([url,directory,filenameList[counter]])
-            try:
-                threads.append(myThread(urlWithDir))
-                threads[-1].start()
-            except:
-                sleep(1);
-                threads[-1].start()
+                try:
+                    threads.append(myThread(urlWithDir))
+                    threads[-1].start()
+                except:
+                    sleep(1);
+                    threads[-1].start()
             counter += 1
         while (threading.activeCount()>100 and filenameListLength > counter):
             for t in threads:
@@ -68,6 +71,29 @@ def searchFiles(url,filenameList):
                 threads.remove(t);
     print()
     createReport(availUrls)
+
+def searchFile(filename):
+    while (threading.activeCount()>100):
+        for t in THREADS:
+            t.join(0.01)
+            if not t.is_alive():
+                THREADS.remove(t);
+    urlWithoutDir = "/".join([URL,filename])
+    sleep(slowdown_t)
+    try:
+        THREADS.append(myThread(urlWithoutDir))
+        THREADS[-1].start()
+    except:
+        sleep(1);
+        THREADS[-1].start()
+    for directory in SUBFOLDER:
+        urlWithDir = "/".join([URL,directory,filename])
+        try:
+            THREADS.append(myThread(urlWithDir))
+            THREADS[-1].start()
+        except:
+            sleep(1);
+            THREADS[-1].start()
 
 def isPresentOnServer(url):
     try:
@@ -105,20 +131,31 @@ parser.add_argument("url",help="Url you want to test")
 parser.add_argument("-i", dest="file" ,help="Wordlist")
 parser.add_argument("-bruteforce",dest='bruteforce', action='store_true',
                     help="Bruteforces the potential filenames")
+parser.add_argument("-bflen",dest='bflen',help="Bruteforces length",type=int,default=3)
 parser.add_argument("-t",dest="slowdown",help="slowdown factor in seconds, default=0.01",default=0.01,type=float)
 args = parser.parse_args()
+slowdown_t = args.slowdown
 if args.file:
-    print("i turned on",args.file)
-    f = open("test.txt","r")
+    f = open(args.file,"r")
     filenameList = f.read().split()
     f.close()
-if args.bruteforce:
-    print("bruteforce turned on", args.bruteforce)
-    filenameList = createAllPossibleStrings(2)
-    # TODO Remove testfiles
-    filenameList.append("password.txt")
-    filenameList.append("config.txt")
-    print(len(filenameList))
-slowdown_t = args.slowdown
-if args.file or args.bruteforce:
     searchFiles(args.url,filenameList)
+elif args.bruteforce:
+    print("bruteforce turned on", args.bruteforce)
+    print("length for Bruteforce is ", args.bflen)
+    URL=args.url
+    #filenameList = createAllPossibleStrings(2)
+    # TODO Remove testfiles
+    #filenameList.append("password.txt")
+    #filenameList.append("config.txt")
+    #print(len(filenameList))
+    #searchFiles(args.url,filenameList)
+    create_str_bf(searchFile,args.bflen) 
+    while (threading.activeCount()>1):
+        for t in THREADS:
+            t.join(0.1)
+            if not t.is_alive():
+                THREADS.remove(t);
+    createReport(availUrls)
+else:
+    print("You have to use -i or -bruteforce");
