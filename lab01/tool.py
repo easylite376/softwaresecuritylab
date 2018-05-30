@@ -2,6 +2,7 @@
 from time import sleep
 import threading
 import re
+import urllib.error
 import argparse,string
 from urllib.request import urlopen
 from urllib.error import HTTPError
@@ -26,8 +27,11 @@ class myThread (threading.Thread):
                 break;
             except HTTPError:
                 break;
+            except urllib.error.URLError:
+                break;
             except:
                 sleep(1)
+                raise
                 print("Server overloaded. Please add slowdown higher than " + str(slowdown_t))
 
 def searchFiles(filenameList):
