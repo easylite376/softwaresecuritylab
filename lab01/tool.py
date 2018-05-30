@@ -27,8 +27,6 @@ class myThread (threading.Thread):
                 break;
             except HTTPError:
                 break;
-            except urllib.error.URLError:
-                break;
             except:
                 sleep(1)
                 raise
