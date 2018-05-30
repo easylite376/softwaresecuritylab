@@ -1,6 +1,7 @@
 #!/usr/local/bin/python3
 from time import sleep
 import threading
+import re
 import argparse,string
 from urllib.request import urlopen
 from urllib.error import HTTPError
@@ -122,6 +123,18 @@ parser.add_argument("-bflen",dest='bflen',help="Bruteforces length",type=int,def
 parser.add_argument("-t",dest="slowdown",help="slowdown factor in seconds, default=0.01",default=0.01,type=float)
 args = parser.parse_args()
 slowdown_t = args.slowdown
+regex = re.compile(
+        r'^(?:http|ftp)s?://' # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
+        r'localhost|' #localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?' # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+
+if re.match(regex, args.url) is None:
+    print("Not a valid URL")
+    parser.print_help()
+    exit(1)
 if (args.url[-1:] == "/"):
     URL = args.url[:-1]
 else:
@@ -149,3 +162,4 @@ elif args.bruteforce:
     createReport()
 else:
     print("You have to use -i or -bruteforce");
+    parser.print_help()
