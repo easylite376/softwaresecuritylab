@@ -9,9 +9,9 @@ from permutations import create_str_bf
 
 URL = ""
 RES=[]
+THREADS=[]
 slowdown_t = 0
 SUBFOLDER = ['backup','data','config','docs']
-THREADS=[]
 
 class myThread (threading.Thread):
     def __init__(self,  url):
@@ -29,48 +29,44 @@ class myThread (threading.Thread):
                 sleep(1)
                 print("Server overloaded. Please add slowdown higher than " + str(slowdown_t))
 
-def searchFiles(url,filenameList):
-    availUrls = list()
+def searchFiles(filenameList):
     filenameListLength = len(filenameList)
     lastProgress = 0
     counter = 0
-    threads=[]
     print("Progress in %: ")
-    if (url[-1:] == "/"):
-        url = url[:-1]
     while(filenameListLength > counter):
         while(threading.activeCount() < 300 and filenameListLength > counter):
             lastProgress = displayProgress(int(counter*100/filenameListLength),lastProgress)
-            urlWithoutDir = "/".join([url,filenameList[counter]])
+            urlWithoutDir = "/".join([URL,filenameList[counter]])
             sleep(slowdown_t)
             try:
-                threads.append(myThread(urlWithoutDir))
-                threads[-1].start()
+                THREADS.append(myThread(urlWithoutDir))
+                THREADS[-1].start()
             except:
                 sleep(1);
-                threads[-1].start()
+                THREADS[-1].start()
             for directory in SUBFOLDER:
-                urlWithDir = "/".join([url,directory,filenameList[counter]])
+                urlWithDir = "/".join([URL,directory,filenameList[counter]])
                 try:
-                    threads.append(myThread(urlWithDir))
-                    threads[-1].start()
+                    THREADS.append(myThread(urlWithDir))
+                    THREADS[-1].start()
                 except:
                     sleep(1);
-                    threads[-1].start()
+                    THREADS[-1].start()
             counter += 1
         while (threading.activeCount()>100 and filenameListLength > counter):
-            for t in threads:
+            for t in THREADS:
                 t.join(0.01)
                 if not t.is_alive():
-                    threads.remove(t);
+                    THREADS.remove(t);
     
     while (threading.activeCount()>1):
-        for t in threads:
+        for t in THREADS:
             t.join(0.1)
             if not t.is_alive():
-                threads.remove(t);
+                THREADS.remove(t);
     print()
-    createReport(availUrls)
+    createReport()
 
 def searchFile(filename):
     while (threading.activeCount()>100):
@@ -101,7 +97,7 @@ def isPresentOnServer(url):
     except HTTPError:
         return False
 
-def createReport(reachableUrls):
+def createReport():
     print("-------------------------------------------------")
     if (len(RES) != 0):
         print("The following urls are reachable on the webserver")
@@ -110,15 +106,6 @@ def createReport(reachableUrls):
             print(url)
     else:
         print("Your webserver is save!")
-
-def createAllPossibleStrings(combinationLength):
-    alphabet = list(string.ascii_lowercase)
-    combinationList = list()
-    extensions = [".cf",".txt",".conf",".bak",".conf.bak",".sql",".data"]
-    for combinationTuple in permutations(alphabet,combinationLength):
-        for extension in extensions:
-            combinationList.append("".join(str(tupleElement) for tupleElement in combinationTuple) + extension)    
-    return combinationList
 
 def displayProgress(actualProgress,lastProgress):
     if actualProgress != lastProgress:
@@ -135,15 +122,18 @@ parser.add_argument("-bflen",dest='bflen',help="Bruteforces length",type=int,def
 parser.add_argument("-t",dest="slowdown",help="slowdown factor in seconds, default=0.01",default=0.01,type=float)
 args = parser.parse_args()
 slowdown_t = args.slowdown
+if (args.url[-1:] == "/"):
+    URL = args.url[:-1]
+else:
+    URL = args.url
 if args.file:
     f = open(args.file,"r")
     filenameList = f.read().split()
     f.close()
-    searchFiles(args.url,filenameList)
+    searchFiles(filenameList)
 elif args.bruteforce:
     print("bruteforce turned on", args.bruteforce)
     print("length for Bruteforce is ", args.bflen)
-    URL=args.url
     #filenameList = createAllPossibleStrings(2)
     # TODO Remove testfiles
     #filenameList.append("password.txt")
@@ -156,6 +146,6 @@ elif args.bruteforce:
             t.join(0.1)
             if not t.is_alive():
                 THREADS.remove(t);
-    createReport(availUrls)
+    createReport()
 else:
     print("You have to use -i or -bruteforce");
