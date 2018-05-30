@@ -70,7 +70,7 @@ def searchFiles(filenameList):
     createReport()
 
 def searchFile(filename):
-    while (threading.activeCount()>100):
+    while (threading.activeCount()>500):
         for t in THREADS:
             t.join(0.01)
             if not t.is_alive():
