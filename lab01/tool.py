@@ -143,6 +143,14 @@ if (args.url[-1:] == "/"):
     URL = args.url[:-1]
 else:
     URL = args.url
+try:
+    urlopen(URL).getcode();
+except urllib.error.URLError:
+    print("Baseurl returns Connection refused")
+    parser.print_help()
+    exit(1)
+except:
+    pass
 if args.file:
     f = open(args.file,"r")
     filenameList = f.read().split()
