@@ -16,7 +16,8 @@ void vuln_copy (char *attack_source)
             "cmpq $0x12345678, (%%rax) \n" //compare label at the return address with static saved label to ensure Programm flow
             "je .LMAX\n " // Jump in success to Label MAX
             "movl $1, %%edi \n" // Set exit value to one in case of manipulation
-            "call exit@PLT \n" // exit with EXIT_FAILURE
+            "movq $60, %%rax \n" //Set the syscall number for exit 
+            "syscall\n" // invoce the kernel trap
             ".LMAX: \n" // Label MAX
             "addq $8, 8(%%rbp)" //Add 8 to the return address to bypass label and execute next instruction in main.
             :
