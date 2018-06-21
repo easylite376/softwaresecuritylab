@@ -19,7 +19,7 @@ void rand_str_dc(char* dest, int length)
                      "abcdefghijklmnopqrstuvwxyz"
                      "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     srand(time(NULL));
-    while (length-- > 0)
+    while (--length > 0)
     {
         size_t index = (double) rand() / RAND_MAX * (sizeof charset - 1);
         *dest++ = charset[index];
