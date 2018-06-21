@@ -5,6 +5,7 @@ void vuln_copy (char *attack_source)
 {
     char dest[20];
     char canary='1';
+    printf("%p: %llx \n", (((void*)dest)+40),*(( unsigned long long* )(((void*)dest)+40)));
 //insecure copy
     strcpy(dest, attack_source);
     if(canary!='1')
