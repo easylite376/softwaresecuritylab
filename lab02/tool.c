@@ -1,4 +1,6 @@
 #include <stdio.h>
+       #include <sys/stat.h>
+       #include <fcntl.h>
 #include <stdlib.h>
 #include <time.h>
 #include <sys/stat.h>
@@ -12,6 +14,7 @@
 #include "randm.h"
 #include <getopt.h>
 # define RETRYS 3
+int fd;
 int get_arg_max()
 {
 #ifdef ARG_MAX
@@ -27,35 +30,85 @@ int get_arg_max()
 #endif
 }
 
-int check_status(int status,char** args,char* argument){
-            if (WIFSIGNALED(status))
-            {
-                if (WSTOPSIG(status) == SIGSEGV || WSTOPSIG(status) == SIGILL )
-                {
-                    fprintf(stderr,"Overflow detected of %s, with the input %s ",args[0],argument);
-                }
-                else
-                {
-                    fprintf(stderr,
-                            "Some other Signal got cought on execution of %s, with the input %s ",args[0],
-                            argument);
-                }
-                    exit(0);
-            }
-            if(WIFEXITED(status))
-            {
-                if(WEXITSTATUS(status)!=0)
-                {
-                    return 1;
-                }
-            }
+int check_status(int status,char** args,char* argument)
+{
+    if (WIFSIGNALED(status))
+    {
+        if (WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGILL )
+        {
+            fprintf(stderr,"Overflow detected of %s, with the input: \n %s ",args[0],argument);
+        }
+        else
+        if (WTERMSIG(status) == SIGABRT )
+        {
+            fprintf(stderr,"Signal Abort detected of %s, with the input: \n %s \nThis is probably send by glibc Stackprotector \n",args[0],argument);
+        }
+        else
+        {
+            fprintf(stderr,
+                    "Signal: %d  got cought on execution of %s, with the input: \n %s ",
+                    WTERMSIG(status), args[0],
+                    argument);
+        }
+        exit(0);
+    }
+    if(WIFEXITED(status))
+    {
+        if(WEXITSTATUS(status)!=0)
+        {
+            return 1;
+        }
+    }
     return 0;
 }
 
-void format_detection(char **argv, char* argument){
-        fprintf(stderr,"Not implemented yet");
+void build_format_string(char *argument)
+{
+    if (sizeof (void*)==8)
+    {
+        rand_str_ndc(argument,9);
+        strcat(argument, " %016lx %016lx %016lx %016lx %016lx %016lx %016lx %s");
+        /* Pattern for 64 bit Machines "AAAAAAAA %016lx %016lx %016lx %016lx %016lx %016lx %016lx %s" */
+    }
+    else if ( sizeof(void*)==4)
+    {
+        rand_str_ndc(argument,5);
+        strcat(argument, " %08x %08x %08x %08x %08x %08x %08x %s");
+        /* Pattern for 32 bit Machines "AAAAAAAA %08x %08x %08x %08x %08x %08x %08x %s" */
+    }
+    else
+    {
+        fprintf(stderr,
+                "This tool can only fuzz format strings on 32bit and 64bit machines!");
+        exit(1);
+    }
 }
 
+void format_detection(char **argv, char* argument)
+{
+    static char *args[]= {NULL,NULL,NULL};
+    args[0]=argv[1];
+    int status=0;
+    for(int i=0; i<64; i++)
+    {
+        build_format_string(argument);
+        pid_t pid=fork();
+        if (pid==0)   /* child process */
+        {
+            dup2(fd, 1);
+            dup2(fd, 2);
+            args[1]=argument;
+            execv(argv[1],args);
+            exit(127); /* only if execv fails */
+        }
+        else   /* pid!=0; parent process */
+        {
+            waitpid(pid,&status,0); /* wait for child to exit */
+            if(check_status(status,args,argument))
+                continue;
+        }
+    }
+}
 void overflow_detection(char **argv,char* argument)
 {
     static char *args[]= {NULL,NULL,NULL};
@@ -67,6 +120,8 @@ void overflow_detection(char **argv,char* argument)
         pid_t pid=fork();
         if (pid==0)   /* child process */
         {
+            dup2(fd, 1);
+            dup2(fd, 2);
             args[1]=argument;
             execv(argv[1],args);
             exit(127); /* only if execv fails */
@@ -86,7 +141,6 @@ void overflow_detection(char **argv,char* argument)
             }
         }
     }
-
     count=0;
     if (error ==1)
     {
@@ -96,6 +150,8 @@ void overflow_detection(char **argv,char* argument)
             pid_t pid=fork();
             if (pid==0)   /* child process */
             {
+                dup2(fd, 1);
+                dup2(fd, 2);
                 args[1]=argument;
                 execv(argv[1],args);
                 exit(127); /* only if execv fails */
@@ -114,7 +170,6 @@ void overflow_detection(char **argv,char* argument)
         }
     }
 }
-
 int main(int argc,char** argv)
 {
     struct stat sb;
@@ -140,6 +195,7 @@ int main(int argc,char** argv)
         exit(1);
     }
     char* argument = (char *) calloc(get_arg_max(),1);
+    fd = open("/dev/null",O_WRONLY | O_CREAT, 0666);   // open the file /dev/null
     srand(time(NULL));
     //rand_str_ndc(arr2,16);
     if(!(strncmp(argv[2],"OVERFLOW",8)))
@@ -150,5 +206,7 @@ int main(int argc,char** argv)
     {
         format_detection(argv,argument);
     }
+    close(fd);
+    printf("Nothing found :(\n");
     return 0;
 }
