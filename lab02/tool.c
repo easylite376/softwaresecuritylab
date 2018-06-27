@@ -52,6 +52,10 @@ int check_status(int status,char** args,char* argument){
     return 0;
 }
 
+void format_detection(char **argv, char* argument){
+        fprintf(stderr,"Not implemented yet");
+}
+
 void overflow_detection(char **argv,char* argument)
 {
     static char *args[]= {NULL,NULL,NULL};
@@ -144,7 +148,7 @@ int main(int argc,char** argv)
     }
     else
     {
-        fprintf(stderr,"Not implemented yet");
+        format_detection(argv,argument);
     }
     return 0;
 }
