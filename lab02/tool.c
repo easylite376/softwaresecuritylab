@@ -27,6 +27,90 @@ int get_arg_max()
 #endif
 }
 
+int check_status(int status,char** args,char* argument){
+            if (WIFSIGNALED(status))
+            {
+                if (WSTOPSIG(status) == SIGSEGV || WSTOPSIG(status) == SIGILL )
+                {
+                    fprintf(stderr,"Overflow detected of %s, with the input %s ",args[0],argument);
+                }
+                else
+                {
+                    fprintf(stderr,
+                            "Some other Signal got cought on execution of %s, with the input %s ",args[0],
+                            argument);
+                }
+                    exit(0);
+            }
+            if(WIFEXITED(status))
+            {
+                if(WEXITSTATUS(status)!=0)
+                {
+                    return 1;
+                }
+            }
+    return 0;
+}
+
+void overflow_detection(char **argv,char* argument)
+{
+    static char *args[]= {NULL,NULL,NULL};
+    args[0]=argv[1];
+    int i=1,count=0,status=0,error=0,last=1;
+    while(i<=get_arg_max())
+    {
+        rand_str_dc(argument,i);
+        pid_t pid=fork();
+        if (pid==0)   /* child process */
+        {
+            args[1]=argument;
+            execv(argv[1],args);
+            exit(127); /* only if execv fails */
+        }
+        else   /* pid!=0; parent process */
+        {
+            waitpid(pid,&status,0); /* wait for child to exit */
+            if((error=check_status(status,args,argument)))
+                break;
+            if (count < RETRYS )
+                count++;
+            else
+            {
+                last=i;
+                i*=2;
+                count=0;
+            }
+        }
+    }
+
+    count=0;
+    if (error ==1)
+    {
+        while(last<i)
+        {
+            rand_str_dc(argument,last);
+            pid_t pid=fork();
+            if (pid==0)   /* child process */
+            {
+                args[1]=argument;
+                execv(argv[1],args);
+                exit(127); /* only if execv fails */
+            }
+            else   /* pid!=0; parent process */
+            {
+                check_status(status,args,argument);
+                if (count < RETRYS )
+                    count++;
+                else
+                {
+                    last++;
+                    count=0;
+                }
+            }
+        }
+    }
+}
+
 int main(int argc,char** argv)
 {
     struct stat sb;
@@ -53,98 +137,10 @@ int main(int argc,char** argv)
     }
     char* argument = (char *) calloc(get_arg_max(),1);
     srand(time(NULL));
-    static char *args[]= {NULL,NULL,NULL};
-    args[0]=argv[1];
     //rand_str_ndc(arr2,16);
-    int i=1,count=0,status=0,error=0,last=1;
     if(!(strncmp(argv[2],"OVERFLOW",8)))
     {
-        while(i<=get_arg_max())
-        {
-            rand_str_dc(argument,i);
-            pid_t pid=fork();
-            if (pid==0)   /* child process */
-            {
-                args[1]=argument;
-                execv(argv[1],args);
-                exit(127); /* only if execv fails */
-            }
-            else   /* pid!=0; parent process */
-            {
-                waitpid(pid,&status,0); /* wait for child to exit */
-                if (WIFSIGNALED(status))
-                {
-                    if (WSTOPSIG(status) == SIGSEGV || WSTOPSIG(status) == SIGILL )
-                    {
-                        fprintf(stderr,"Overflow detected of %s, with the input %s ",args[0],argument);
-                        exit(0);
-                    }
-                    else
-                    {
-                        fprintf(stderr,
-                                "Some other Signal got cought on execution of %s, with the input %s ",args[0],
-                                argument);
-                        exit(0);
-                    }
-                }
-                if(WIFEXITED(status))
-                {
-                    if(WEXITSTATUS(status)!=0)
-                    {
-                        error=1;
-                        break;
-                    }
-                }
-                if (count < RETRYS )
-                    count++;
-                else
-                {
-                    last=i;
-                    i*=2;
-                    count=0;
-                }
-            }
-        }
-        count=0;
-        if (error ==1)
-        {
-            while(last<i)
-            {
-                rand_str_dc(argument,last);
-                pid_t pid=fork();
-                if (pid==0)   /* child process */
-                {
-                    args[1]=argument;
-                    execv(argv[1],args);
-                    exit(127); /* only if execv fails */
-                }
-                else   /* pid!=0; parent process */
-                {
-                    if (WIFSIGNALED(status))
-                    {
-                        if (WSTOPSIG(status) == SIGSEGV || WSTOPSIG(status) == SIGILL )
-                        {
-                            fprintf(stderr,"Overflow detected of %s, with the input %s ",args[0],argument);
-                            exit(0);
-                        }
-                        else
-                        {
-                            fprintf(stderr,
-                                    "Some other Signal got cought on execution of %s, with the input %s ",args[0],
-                                    argument);
-                            exit(0);
-                        }
-                    }
-                if (count < RETRYS )
-                    count++;
-                else
-                {
-                    last++;
-                    count=0;
-                }
-                }
-            }
-        }
+        overflow_detection( argv,argument);
     }
     else
     {
