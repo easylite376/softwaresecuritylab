@@ -1,53 +1,83 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <sys/stat.h>
+#include <sys/param.h>
 #include <sys/types.h>
+#include <limits.h>
 #include <string.h>
 #include <unistd.h> /* for fork */
 #include <sys/types.h> /* for pid_t */
 #include <sys/wait.h> /* for wait */
 #include "randm.h"
 #include <getopt.h>
+# define RETRYS 3
+int get_arg_max()
+{
+#ifdef ARG_MAX
+    return ARG_MAX
+#else
+    int value = sysconf (_SC_ARG_MAX);
+    if (value < 0)
+    {
+        fprintf(stderr,"Couldn't get ARG_MAX from sysconf! Not a POSIX System?\n");
+        exit(2);
+    }
+    return value;
+#endif
+}
 
 int main(int argc,char** argv)
 {
     struct stat sb;
-    if (argc!=3){
+    if (argc!=3)
+    {
         printf("This tool requires 2 arguments \n tool.out PROGRAM OVERFLOW|FORMATSTRING \n");
         exit(1);
     }
-    if(! ( strncmp(argv[2],"OVERFLOW",8)  || strncmp(argv[2],"FORMATSTRING",12))){
+    if(! ( strncmp(argv[2],"OVERFLOW",8)  || strncmp(argv[2],"FORMATSTRING",12)))
+    {
         printf("This tool requires 2 arguments \n tool.out PROGRAM OVERFLOW|FORMATSTRING \n");
         exit(1);
     }
-    if( access( argv[1], F_OK ) < 0 ) {
+    if( access( argv[1], F_OK ) < 0 )
+    {
         printf("This tool requires 2 arguments \n tool.out PROGRAM OVERFLOW|FORMATSTRING \n");
         exit(1);
     }
     int ret = stat(argv[1], &sb);
-    if (!(ret == 0 && (sb.st_mode & S_IXUSR))) {
+    if (!(ret == 0 && (sb.st_mode & S_IXUSR)))
+    {
         printf("This tool requires 2 arguments \n tool.out PROGRAM OVERFLOW|FORMATSTRING \n");
         exit(1);
     }
-
-    char arr[16];
-    char arr2[16];
-    rand_str_dc(arr,16);
-    rand_str_ndc(arr2,16);
-
-    printf("%s \n",arr);
-    printf("%s \n",arr2);
-    pid_t pid=fork();
-    if (pid==0)   /* child process */
+    char* argument = (char *) calloc(get_arg_max(),1);
+    srand(time(NULL));
+    static char *args[]= {NULL,NULL,NULL};
+    args[0]=argv[1];
+    //rand_str_ndc(arr2,16);
+    int i=1,count=0;
+    while(i<=get_arg_max())
     {
-        static char *argv[]= {"test.out",NULL,NULL};
-        argv[1]=arr;
-        execv("./test.out",argv);
-        exit(127); /* only if execv fails */
-    }
-    else   /* pid!=0; parent process */
-    {
-        waitpid(pid,0,0); /* wait for child to exit */
+        rand_str_dc(argument,i);
+        pid_t pid=fork();
+        if (pid==0)   /* child process */
+        {
+            args[1]=argument;
+            execv(argv[1],args);
+            exit(127); /* only if execv fails */
+        }
+        else   /* pid!=0; parent process */
+        {
+            waitpid(pid,0,0); /* wait for child to exit */
+            if (count < RETRYS )
+                count++;
+            else
+            {
+                i*=2;
+                count=0;
+            }
+        }
     }
     return 0;
 }

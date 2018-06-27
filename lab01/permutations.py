@@ -3,7 +3,6 @@ import string
 def create_str_bf(cb,n):
     alphabet = list(string.ascii_lowercase)
     combinationList = list()
-    extensions = [".cf",".txt",".conf",".bak",".conf.bak",".sql",".data"]
     for i in range(1,n+1):
         create_str_fixedlen(cb,i)        
 
