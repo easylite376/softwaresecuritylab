@@ -1,6 +1,6 @@
 #include <stdio.h>
-       #include <sys/stat.h>
-       #include <fcntl.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <time.h>
 #include <sys/stat.h>
@@ -36,12 +36,14 @@ int check_status(int status,char** args,char* argument)
     {
         if (WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGILL )
         {
-            fprintf(stderr,"Overflow detected of %s, with the input: \n %s \n",args[0],argument);
+            fprintf(stderr,"Overflow detected of %s, with the input: \n %s \n",args[0],
+                    argument);
         }
-        else
-        if (WTERMSIG(status) == SIGABRT )
+        else if (WTERMSIG(status) == SIGABRT )
         {
-            fprintf(stderr,"Signal Abort detected of %s, with the input: \n %s \nThis is probably send by glibc Stackprotector \n",args[0],argument);
+            fprintf(stderr,
+                    "Signal Abort detected of %s, with the input: \n %s \nThis is probably send by glibc Stackprotector \n",
+                    args[0],argument);
         }
         else
         {
@@ -62,19 +64,27 @@ int check_status(int status,char** args,char* argument)
     return 0;
 }
 
-void build_format_string(char *argument)
+void build_format_string(char *argument, int count )
 {
     if (sizeof (void*)==8)
     {
         rand_str_ndc(argument,9);
-        strcat(argument, " %016lx %016lx %016lx %016lx %016lx %016lx %016lx %s");
-        /* Pattern for 64 bit Machines "AAAAAAAA %016lx %016lx %016lx %016lx %016lx %016lx %016lx %s" */
+        for ( int i=0; i<count; i++)
+        {
+            strcat(argument, " %016lx");
+            /* Pattern for 64 bit Machines "AAAAAAAA %016lx %016lx %016lx %016lx %016lx %016lx %016lx %s" */
+        }
+        strcat(argument, " %s");
     }
     else if ( sizeof(void*)==4)
     {
         rand_str_ndc(argument,5);
-        strcat(argument, " %08x %08x %08x %08x %08x %08x %08x %s");
-        /* Pattern for 32 bit Machines "AAAAAAAA %08x %08x %08x %08x %08x %08x %08x %s" */
+        for ( int i=0; i<count; i++)
+        {
+            strcat(argument, " %08x");
+            /* Pattern for 32 bit Machines "AAAAAAAA %08x %08x %08x %08x %08x %08x %08x %s" */
+        }
+        strcat(argument, " %s");
     }
     else
     {
@@ -89,9 +99,9 @@ void format_detection(char **argv, char* argument)
     static char *args[]= {NULL,NULL,NULL};
     args[0]=argv[1];
     int status=0;
-    for(int i=0; i<64; i++)
+    for(int i=0; i<960; i++)
     {
-        build_format_string(argument);
+        build_format_string(argument,(i%15)+5 );
         pid_t pid=fork();
         if (pid==0)   /* child process */
         {
