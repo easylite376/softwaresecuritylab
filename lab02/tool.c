@@ -18,7 +18,7 @@ int fd;
 int get_arg_max()
 {
 #ifdef ARG_MAX
-    return ARG_MAX
+    return ARG_MAX;
 #else
     int value = sysconf (_SC_ARG_MAX);
     if (value < 0)
