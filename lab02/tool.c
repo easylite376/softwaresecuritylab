@@ -188,7 +188,7 @@ int main(int argc,char** argv)
         printf("This tool requires 2 arguments \n tool.out PROGRAM OVERFLOW|FORMATSTRING \n");
         exit(1);
     }
-    if(! ( strncmp(argv[2],"OVERFLOW",8)  || strncmp(argv[2],"FORMATSTRING",12)))
+    if( !(strncmp(argv[2],"OVERFLOW",8)==0  || strncmp(argv[2],"FORMATSTRING",12) ==0 ))
     {
         printf("This tool requires 2 arguments \n tool.out PROGRAM OVERFLOW|FORMATSTRING \n");
         exit(1);
