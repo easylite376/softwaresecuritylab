@@ -1,6 +1,7 @@
 # Student stuff
 *.zip
 *.out
+*.o
 
 .vscode
 lab03/Notes
