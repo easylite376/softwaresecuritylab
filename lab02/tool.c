@@ -36,7 +36,7 @@ int check_status(int status,char** args,char* argument)
     {
         if (WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGILL )
         {
-            fprintf(stderr,"Overflow detected of %s, with the input: \n %s ",args[0],argument);
+            fprintf(stderr,"Overflow detected of %s, with the input: \n %s \n",args[0],argument);
         }
         else
         if (WTERMSIG(status) == SIGABRT )
@@ -46,7 +46,7 @@ int check_status(int status,char** args,char* argument)
         else
         {
             fprintf(stderr,
-                    "Signal: %d  got cought on execution of %s, with the input: \n %s ",
+                    "Signal: %d  got cought on execution of %s, with the input: \n %s \n",
                     WTERMSIG(status), args[0],
                     argument);
         }
